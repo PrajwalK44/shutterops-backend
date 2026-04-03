@@ -4,6 +4,8 @@ const { createUsersTable } = require("./models/userModel");
 const { createEquipmentTable } = require("./models/equipmentModel");
 const { createHandoverLogsTable } = require("./models/handoverLogModel");
 const { createSwapRequestsTable } = require("./models/swapRequestModel");
+const { createEventTable } = require("./models/eventModel");
+const { createTaskSlotTable } = require("./models/taskSlotModel");
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
@@ -11,6 +13,8 @@ async function startServer() {
   await createEquipmentTable();
   await createHandoverLogsTable();
   await createSwapRequestsTable();
+  await createEventTable();
+  await createTaskSlotTable();
   await query("SELECT 1");
 
   app.listen(PORT, () => {
