@@ -7,6 +7,8 @@ const equipmentRouter = require("./routes/equipmentRoutes");
 const handoverRouter = require("./routes/handoverRoutes");
 const swapRequestRouter = require("./routes/swapRequestRoutes");
 const analyticsRouter = require("./routes/analyticsRoutes");
+const eventRoutes = require("./routes/eventRoutes");
+const taskSlotRoutes = require("./routes/taskSlotRoutes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
@@ -37,6 +39,8 @@ app.use("/equipment", equipmentRouter);
 app.use("/handover", handoverRouter);
 app.use("/swap-requests", swapRequestRouter);
 app.use("/analytics", analyticsRouter);
+app.use("/api/events", eventRoutes);
+app.use("/api/task-slots", taskSlotRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
