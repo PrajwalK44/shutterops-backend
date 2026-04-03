@@ -31,7 +31,7 @@ async function createEvent(payload) {
       payload.date,
       payload.venue || null,
       payload.created_by || null,
-    ]
+    ],
   );
   return result.rows[0];
 }
@@ -45,7 +45,9 @@ async function getAllEvents(status) {
     conditions.push(`status = $${values.length}`);
   }
 
-  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const whereClause = conditions.length
+    ? `WHERE ${conditions.join(" AND ")}`
+    : "";
 
   const result = await query(
     `
@@ -54,16 +56,15 @@ async function getAllEvents(status) {
       ${whereClause}
       ORDER BY date ASC
     `,
-    values
+    values,
   );
   return result.rows;
 }
 
 async function getEventById(event_id) {
-  const result = await query(
-    `SELECT * FROM events WHERE event_id = $1`,
-    [event_id]
-  );
+  const result = await query(`SELECT * FROM events WHERE event_id = $1`, [
+    event_id,
+  ]);
   return result.rows[0] || null;
 }
 
@@ -99,7 +100,7 @@ async function updateEvent(event_id, updates) {
       WHERE event_id = $${values.length}
       RETURNING *
     `,
-    values
+    values,
   );
 
   return result.rows[0] || null;
@@ -108,7 +109,7 @@ async function updateEvent(event_id, updates) {
 async function deleteEvent(event_id) {
   const result = await query(
     `DELETE FROM events WHERE event_id = $1 RETURNING *`,
-    [event_id]
+    [event_id],
   );
   return result.rows[0] || null;
 }
@@ -129,9 +130,13 @@ async function getEventDashboard(event_id) {
             'total', COUNT(*),
             'open', COUNT(*) FILTER (WHERE status = 'open'),
             'assigned', COUNT(*) FILTER (WHERE status = 'assigned'),
+            'raw_uploaded', COUNT(*) FILTER (WHERE status = 'raw_uploaded'),
+            'sorted', COUNT(*) FILTER (WHERE status = 'sorted'),
+            'edited', COUNT(*) FILTER (WHERE status = 'edited'),
             'in_progress', COUNT(*) FILTER (WHERE status = 'in_progress'),
             'submitted', COUNT(*) FILTER (WHERE status = 'submitted'),
             'verified', COUNT(*) FILTER (WHERE status = 'verified'),
+            'delivered', COUNT(*) FILTER (WHERE status = 'delivered'),
             'rejected', COUNT(*) FILTER (WHERE status = 'rejected')
           ) FROM task_slots ts WHERE ts.event_id = e.event_id
         ) AS slot_summary,
@@ -158,12 +163,13 @@ async function getEventDashboard(event_id) {
             )
           ), '[]'::json)
           FROM task_slots ts
-          WHERE ts.event_id = e.event_id AND ts.status = 'submitted'
+          WHERE ts.event_id = e.event_id
+            AND ts.status IN ('raw_uploaded', 'sorted', 'edited', 'submitted')
         ) AS unverified_uploads
       FROM events e
       WHERE e.event_id = $1
     `,
-    [event_id]
+    [event_id],
   );
 
   return result.rows[0] || null;

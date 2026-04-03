@@ -12,6 +12,7 @@ const taskSlotRoutes = require("./routes/taskSlotRoutes");
 
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
+const authMiddleware = require("./middlewares/authMiddleware");
 
 const app = express();
 
@@ -34,13 +35,14 @@ app.get("/health", async (req, res, next) => {
   }
 });
 
-app.use("/api/users", usersRouter);
-app.use("/equipment", equipmentRouter);
-app.use("/handover", handoverRouter);
-app.use("/swap-requests", swapRequestRouter);
-app.use("/analytics", analyticsRouter);
-app.use("/api/events", eventRoutes);
-app.use("/api/task-slots", taskSlotRoutes);
+// Use the auth middleware to protect these routes
+app.use("/api/users", authMiddleware, usersRouter);
+app.use("/equipment", authMiddleware, equipmentRouter);
+app.use("/handover", authMiddleware, handoverRouter);
+app.use("/swap-requests", authMiddleware, swapRequestRouter);
+app.use("/analytics", authMiddleware, analyticsRouter);
+app.use("/api/events", authMiddleware, eventRoutes);
+app.use("/api/task-slots", authMiddleware, taskSlotRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

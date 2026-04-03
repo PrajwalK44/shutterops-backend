@@ -2,6 +2,7 @@ const {
   ALLOWED_ROLES,
   getAllUsers,
   getUserById,
+  getUserByFirebaseUid,
   createUser,
   updateUserById,
   updateUserAvailability,
@@ -99,6 +100,9 @@ async function createUserHandler(req, res) {
       });
     }
 
+    const firebase_uid = req.user?.uid;
+    const email = req.user?.email || req.body.email;
+
     if (!name || !role) {
       return res.status(400).json({
         message: "Missing required fields: name and role are required.",
@@ -120,7 +124,13 @@ async function createUserHandler(req, res) {
       });
     }
 
-    const created = await createUser(req.body);
+    const payload = {
+      ...req.body,
+      firebase_uid,
+      email,
+    };
+
+    const created = await createUser(payload);
     return res.status(201).json(created);
   } catch (error) {
     return handleDatabaseError(error, res);
@@ -214,9 +224,26 @@ async function patchUserAvailability(req, res) {
   }
 }
 
+async function getCurrentUser(req, res) {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ message: "No firebase user found" });
+
+    const user = await getUserByFirebaseUid(uid);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json(user);
+  } catch (error) {
+    return handleDatabaseError(error, res);
+  }
+}
+
 module.exports = {
   getUsers,
   getUser,
+  getCurrentUser,
   createUserHandler,
   patchUser,
   patchUserAvailability,

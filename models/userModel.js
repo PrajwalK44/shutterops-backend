@@ -8,6 +8,8 @@ async function createUsersTable() {
   await query(`
     CREATE TABLE IF NOT EXISTS users (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      firebase_uid TEXT UNIQUE,
+      email TEXT UNIQUE,
       name TEXT NOT NULL,
       roll_no TEXT UNIQUE,
       class_branch TEXT,
@@ -67,11 +69,13 @@ async function getUserById(id) {
 async function createUser(payload) {
   const result = await query(
     `
-      INSERT INTO users (name, roll_no, class_branch, role, skill_level, is_available)
-      VALUES ($1, $2, $3, $4, $5, COALESCE($6, true))
-      RETURNING id, name, roll_no, class_branch, role, skill_level, is_available, created_at, updated_at
+      INSERT INTO users (firebase_uid, email, name, roll_no, class_branch, role, skill_level, is_available)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, true))
+      RETURNING id, firebase_uid, email, name, roll_no, class_branch, role, skill_level, is_available, created_at, updated_at
     `,
     [
+      payload.firebase_uid || null,
+      payload.email || null,
       payload.name,
       payload.roll_no || null,
       payload.class_branch || null,
@@ -138,11 +142,24 @@ async function updateUserAvailability(id, isAvailable) {
   return result.rows[0] || null;
 }
 
+async function getUserByFirebaseUid(uid) {
+  const result = await query(
+    `
+      SELECT id, firebase_uid, email, name, roll_no, class_branch, role, skill_level, is_available, created_at, updated_at
+      FROM users
+      WHERE firebase_uid = $1
+    `,
+    [uid]
+  );
+  return result.rows[0] || null;
+}
+
 module.exports = {
   ALLOWED_ROLES,
   createUsersTable,
   getAllUsers,
   getUserById,
+  getUserByFirebaseUid,
   createUser,
   updateUserById,
   updateUserAvailability,

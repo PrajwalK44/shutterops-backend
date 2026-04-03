@@ -8,5 +8,6 @@ router.post("/:slot_id/assign", taskSlotController.assignUser);
 router.patch("/:slot_id/status", taskSlotController.updateStatus);
 router.post("/:slot_id/upload", taskSlotController.uploadPhoto);
 router.post("/:slot_id/verify", taskSlotController.verifySlot);
+router.post("/:slot_id/deliver", taskSlotController.deliverSlot);
 
 module.exports = router;

@@ -2,6 +2,7 @@ const express = require("express");
 const {
   getUsers,
   getUser,
+  getCurrentUser,
   createUserHandler,
   patchUser,
   patchUserAvailability,
@@ -10,6 +11,7 @@ const {
 const router = express.Router();
 
 router.get("/", getUsers);
+router.get("/me", getCurrentUser);
 router.get("/:id", getUser);
 router.post("/", createUserHandler);
 router.patch("/:id", patchUser);

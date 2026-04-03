@@ -13,13 +13,45 @@ async function createTaskSlotTable() {
       start_time   TIMESTAMPTZ,
       end_time     TIMESTAMPTZ,
       assigned_to  UUID REFERENCES users(id),
-      status       TEXT DEFAULT 'open' CHECK (status IN ('open', 'assigned', 'in_progress', 'submitted', 'verified', 'rejected')),
+      status       TEXT DEFAULT 'open' CHECK (status IN ('open', 'assigned', 'raw_uploaded', 'sorted', 'edited', 'in_progress', 'submitted', 'verified', 'delivered', 'rejected')),
       upload_url   TEXT,
       verified_by  UUID REFERENCES users(id),
       verified_at  TIMESTAMPTZ,
+      delivery_timestamp TIMESTAMPTZ,
       created_at   TIMESTAMPTZ DEFAULT NOW(),
       updated_at   TIMESTAMPTZ DEFAULT NOW()
     );
+  `);
+
+  await query(`
+    ALTER TABLE task_slots
+    ADD COLUMN IF NOT EXISTS delivery_timestamp TIMESTAMPTZ
+  `);
+
+  await query(`
+    DO $$
+    DECLARE
+      status_constraint_name TEXT;
+    BEGIN
+      SELECT conname
+      INTO status_constraint_name
+      FROM pg_constraint
+      WHERE conrelid = 'task_slots'::regclass
+        AND contype = 'c'
+        AND pg_get_constraintdef(oid) ILIKE '%status%';
+
+      IF status_constraint_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE task_slots DROP CONSTRAINT %I', status_constraint_name);
+      END IF;
+
+      ALTER TABLE task_slots
+      ADD CONSTRAINT task_slots_status_check
+      CHECK (status IN ('open', 'assigned', 'raw_uploaded', 'sorted', 'edited', 'in_progress', 'submitted', 'verified', 'delivered', 'rejected'));
+    EXCEPTION
+      WHEN duplicate_object THEN
+        NULL;
+    END
+    $$;
   `);
 }
 
@@ -37,16 +69,15 @@ async function createTaskSlot(payload) {
       payload.slot_type || null,
       payload.start_time || null,
       payload.end_time || null,
-    ]
+    ],
   );
   return result.rows[0];
 }
 
 async function getTaskSlotById(slot_id) {
-  const result = await query(
-    `SELECT * FROM task_slots WHERE slot_id = $1`,
-    [slot_id]
-  );
+  const result = await query(`SELECT * FROM task_slots WHERE slot_id = $1`, [
+    slot_id,
+  ]);
   return result.rows[0] || null;
 }
 
@@ -57,7 +88,7 @@ async function getSlotsByEventId(event_id) {
       WHERE event_id = $1
       ORDER BY start_time ASC
     `,
-    [event_id]
+    [event_id],
   );
   return result.rows;
 }
@@ -94,7 +125,7 @@ async function updateTaskSlot(slot_id, updates) {
       WHERE slot_id = $${values.length}
       RETURNING *
     `,
-    values
+    values,
   );
 
   return result.rows[0] || null;
@@ -108,7 +139,7 @@ async function assignUserToSlot(slot_id, user_id) {
       WHERE slot_id = $2
       RETURNING *
     `,
-    [user_id, slot_id]
+    [user_id, slot_id],
   );
   return result.rows[0] || null;
 }
@@ -121,7 +152,7 @@ async function updateSlotStatus(slot_id, status) {
       WHERE slot_id = $2
       RETURNING *
     `,
-    [status, slot_id]
+    [status, slot_id],
   );
   return result.rows[0] || null;
 }
@@ -130,11 +161,11 @@ async function attachUpload(slot_id, upload_url) {
   const result = await query(
     `
       UPDATE task_slots
-      SET upload_url = $1, status = 'submitted', updated_at = NOW()
+      SET upload_url = $1, status = 'raw_uploaded', updated_at = NOW()
       WHERE slot_id = $2
       RETURNING *
     `,
-    [upload_url, slot_id]
+    [upload_url, slot_id],
   );
   return result.rows[0] || null;
 }
@@ -147,8 +178,24 @@ async function verifySlot(slot_id, verified_by) {
       WHERE slot_id = $2
       RETURNING *
     `,
-    [verified_by, slot_id]
+    [verified_by, slot_id],
   );
+  return result.rows[0] || null;
+}
+
+async function deliverSlot(slot_id) {
+  const result = await query(
+    `
+      UPDATE task_slots
+      SET status = 'delivered',
+          delivery_timestamp = NOW(),
+          updated_at = NOW()
+      WHERE slot_id = $1
+      RETURNING *
+    `,
+    [slot_id],
+  );
+
   return result.rows[0] || null;
 }
 
@@ -162,4 +209,5 @@ module.exports = {
   updateSlotStatus,
   attachUpload,
   verifySlot,
+  deliverSlot,
 };

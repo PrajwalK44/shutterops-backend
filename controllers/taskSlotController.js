@@ -17,7 +17,12 @@ const getTaskSlotById = asyncHandler(async (req, res) => {
 const getSlotsByEventId = asyncHandler(async (req, res) => {
   const { event_id } = req.params;
   const slots = await taskSlotService.getSlotsByEventId(event_id);
-  return sendSuccess(res, 200, slots, "Task slots fetched successfully for event");
+  return sendSuccess(
+    res,
+    200,
+    slots,
+    "Task slots fetched successfully for event",
+  );
 });
 
 const updateTaskSlot = asyncHandler(async (req, res) => {
@@ -30,14 +35,19 @@ const updateTaskSlot = asyncHandler(async (req, res) => {
 const assignUser = asyncHandler(async (req, res) => {
   const { slot_id } = req.params;
   const { user_id } = req.body;
-  
+
   if (!user_id) {
     const AppError = require("../services/appError");
     throw new AppError("user_id is required", 400);
   }
 
   const assignedSlot = await taskSlotService.assignUser(slot_id, user_id);
-  return sendSuccess(res, 200, assignedSlot, "User assigned to slot successfully");
+  return sendSuccess(
+    res,
+    200,
+    assignedSlot,
+    "User assigned to slot successfully",
+  );
 });
 
 const updateStatus = asyncHandler(async (req, res) => {
@@ -50,7 +60,12 @@ const updateStatus = asyncHandler(async (req, res) => {
   }
 
   const updatedSlot = await taskSlotService.updateStatus(slot_id, status);
-  return sendSuccess(res, 200, updatedSlot, "Task slot status updated successfully");
+  return sendSuccess(
+    res,
+    200,
+    updatedSlot,
+    "Task slot status updated successfully",
+  );
 });
 
 const uploadPhoto = asyncHandler(async (req, res) => {
@@ -63,7 +78,12 @@ const uploadPhoto = asyncHandler(async (req, res) => {
   }
 
   const updatedSlot = await taskSlotService.uploadPhoto(slot_id, upload_url);
-  return sendSuccess(res, 200, updatedSlot, "Photo uploaded to slot successfully");
+  return sendSuccess(
+    res,
+    200,
+    updatedSlot,
+    "Photo uploaded to slot successfully",
+  );
 });
 
 const verifySlot = asyncHandler(async (req, res) => {
@@ -79,6 +99,12 @@ const verifySlot = asyncHandler(async (req, res) => {
   return sendSuccess(res, 200, updatedSlot, "Slot verified successfully");
 });
 
+const deliverSlot = asyncHandler(async (req, res) => {
+  const { slot_id } = req.params;
+  const updatedSlot = await taskSlotService.deliverSlot(slot_id);
+  return sendSuccess(res, 200, updatedSlot, "Slot delivered successfully");
+});
+
 module.exports = {
   createTaskSlot,
   getTaskSlotById,
@@ -88,4 +114,5 @@ module.exports = {
   updateStatus,
   uploadPhoto,
   verifySlot,
+  deliverSlot,
 };
